@@ -29,6 +29,7 @@ class SigKernel():
         batch = X.shape[0]
         if batch <= max_batch:
             K = _SigKernel.apply(X, Y, self.static_kernel, self.dyadic_order, self._naive_solver)
+            K = K[:, -1, -1]
         else:
             cutoff = int(batch/2)
             X1, X2 = X[:cutoff], X[cutoff:]
@@ -37,6 +38,26 @@ class SigKernel():
             K2 = self.compute_kernel(X2, Y2, max_batch)
             K = torch.cat((K1, K2), 0)
         return K
+    
+    def compute_kernel_matrix(self, X, Y, max_batch=100):
+        """Input:
+                  - X: torch tensor of shape (batch, length_X, dim),
+                  - Y: torch tensor of shape (batch, length_Y, dim)
+           Output: 
+                  - vector k(X^i_T,Y^i_T) of shape (batch, length_X*2^dyadic_order, length_Y*2^dyadic_order)
+        """
+        batch = X.shape[0]
+        if batch <= max_batch:
+            K = _SigKernel.apply(X, Y, self.static_kernel, self.dyadic_order, self._naive_solver)
+        else:
+            cutoff = int(batch/2)
+            X1, X2 = X[:cutoff], X[cutoff:]
+            Y1, Y2 = Y[:cutoff], Y[cutoff:]
+            K1 = self.compute_kernel(X1, Y1, max_batch)
+            K2 = self.compute_kernel(X2, Y2, max_batch)
+            K = torch.cat((K1, K2), 0)
+        return K
+
 
 
     def compute_kernel_and_derivatives_Gram(self, X, Y, gamma, max_batch=100):
@@ -234,7 +255,7 @@ class _SigKernel(torch.autograd.Function):
             sigkernel_cuda[A, threads_per_block](cuda.as_cuda_array(G_static_.detach()),
                                                  MM+1, NN+1, n_anti_diagonals,
                                                  cuda.as_cuda_array(K), _naive_solver)
-            K = K[:,:-1,:-1]
+            # K = K[:,:-1,:-1]
 
         # if on CPU
         else:
@@ -245,7 +266,7 @@ class _SigKernel(torch.autograd.Function):
         ctx.dyadic_order = dyadic_order
         ctx._naive_solver = _naive_solver
 
-        return K[:,-1,-1]
+        return K
 
 
     @staticmethod
