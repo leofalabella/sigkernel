@@ -1,2 +1,0 @@
-import MNIST_funcs
-import qclassifier_functions as qcf
