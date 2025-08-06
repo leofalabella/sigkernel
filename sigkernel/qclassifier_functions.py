@@ -4,7 +4,7 @@ from torch.utils.data import Dataset, Subset
 import torch
 import sigkernel
 import copy
-import MNIST_funcs
+from . import MNIST_funcs
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
